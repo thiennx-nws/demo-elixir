@@ -1,0 +1,61 @@
+<!DOCTYPE html> <html>
+<head>
+ <title>Martide</title>
+  <link href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0-beta.2/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-PsH8R72JQ3SOdhVi3uxftmaW6Vc51MKb0q5P2rRUpPvrszuE4W1povHYgTpBfshb" crossorigin="anonymous">
+  <script src="https://code.jquery.com/jquery-3.2.1.slim.min.js" integrity="sha256-k2WSCIexGzOj3Euiig+TlR8gA0EmPjuc79OEeY5L45g=" crossorigin="anonymous"></script>
+  <style>
+    h1 {
+      padding: 0 0 0 15px;
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>Seafarers</h1>
+  </header>
+  <section>
+    <ul id="main-list" class="list-group"></ul>
+  </section>
+  <script>
+    let request = (method, path) => {
+      var headers = new Headers();
+      headers.append('Accept', 'application/json');
+      return fetch(new Request(`http://localhost:4000/api/v1${path}`, {
+        method,
+        headers,
+        mode: 'cors',
+        cache: 'default'
+      }));
+    };
+    let get = (path) => { return request('GET', path) };
+    (function init() {
+      get('/seafarers').then(response => {
+        return response.json();
+      }).then(json => {
+        var includedMap = {};
+        json.included.forEach(item => {
+          if (!includedMap[item.type]) {
+            includedMap[item.type] = {};
+          }
+          includedMap[item.type][item.id] = item;
+        });
+        json.data.forEach(item => {
+          if (item.type && item.type.toLowerCase() === 'seafarers' && item.relationships.seafarer_ranks.data.length > 0) {
+            var seafarerRanksHtml = item.relationships.seafarer_ranks.data.map(seafarerRankRelationship => {
+              var seafarerRank = includedMap[seafarerRankRelationship.type][seafarerRankRelationship.id];
+              if (seafarerRank) {
+                return `<span class="badge badge-secondary">${seafarerRank.attributes.name}</span> `;
+              }
+              return '';
+            }).join('');
+
+            var name = item.attributes['name'];
+            var country = item.attributes['country'];
+            $("#main-list").append(`<li class="list-group-item"><span class="name"><strong>${name}</strong> from ${country}</span><div class="badge">${seafarerRanksHtml}</div></h5>`);
+          }
+        })
+      });
+    })();
+  </script>
+</body>
+</html>
